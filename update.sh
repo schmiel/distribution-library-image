@@ -3,11 +3,12 @@
 set -e
 
 if [ $# -eq 0 ] ; then
-	echo "Usage: ./update.sh <docker/distribution tag or branch>"
+	echo "Usage: ./update.sh <docker image name>"
 	exit
 fi
 
-VERSION=$1
+VERSION=mongodb_docker_registry_v2.7_storage_driver
+GOARCH=amd64
 
 if [ "$GOARCH" == "" ] ; then
 	echo "Must set GOARCH in environment"
@@ -22,7 +23,7 @@ echo "Fetching and building distribution $VERSION..."
 # Create a temporary directory.
 TEMP=`mktemp -d --tmpdir distribution.XXXXXX`
 
-git clone -b $VERSION https://github.com/docker/distribution.git $TEMP
+git clone -b $VERSION https://github.com/schmiel/distribution.git $TEMP
 docker build --build-arg GOARCH=$GOARCH --build-arg GOARM=$GOARM -t distribution-builder-$GOARCH $TEMP
 
 # Create a dummy distribution-build container so we can run a cp against it.
@@ -37,5 +38,9 @@ docker rmi distribution-builder-$GOARCH
 
 cp Dockerfile.noarch $GOARCH/Dockerfile
 cp docker-entrypoint.sh config-example.yml $GOARCH
+
+echo "Building docker image $1"
+cd $GOARCH
+docker build -f Dockerfile -t $1 .
 
 echo "Done."
